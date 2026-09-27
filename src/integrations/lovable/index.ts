@@ -13,27 +13,29 @@ type SignInOptions = {
 export const lovable = {
   auth: {
     signInWithOAuth: async (provider: OAuthProvider, opts?: SignInOptions) => {
-      const result = await lovableAuth.signInWithOAuth(provider, {
-        ...opts,
-        extraParams: {
-          ...opts?.extraParams,
-        },
-      });
-
-      if (result.redirected) {
-        return result;
-      }
-
-      if (result.error) {
-        return result;
-      }
-
       try {
-        await supabase.auth.setSession(result.tokens);
+        const result = await lovableAuth.signInWithOAuth(provider, {
+          ...opts,
+          extraParams: {
+            ...opts?.extraParams,
+          },
+        });
+
+        if (result.redirected) {
+          return result;
+        }
+
+        if (result.error) {
+          return result;
+        }
+
+        if (result.tokens) {
+          await supabase.auth.setSession(result.tokens);
+        }
+        return result;
       } catch (e) {
         return { error: e instanceof Error ? e : new Error(String(e)) };
       }
-      return result;
     },
   },
 };

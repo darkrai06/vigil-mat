@@ -7,8 +7,8 @@ import { AmbientBackground } from "@/components/AmbientBackground";
 type NavItem = { to: string; label: string };
 
 const baseNav: NavItem[] = [
-  { to: "/dashboard", label: "Today's exam" },
-  { to: "/history", label: "Attempt history" },
+  { to: "/dashboard", label: "আজকের পরীক্ষা" },
+  { to: "/history", label: "পরীক্ষার ইতিহাস" },
 ];
 
 export function AppShell({
@@ -26,7 +26,7 @@ export function AppShell({
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  const items = showAdmin ? [...baseNav, { to: "/admin", label: "Admin" }] : baseNav;
+  const items = showAdmin ? [...baseNav, { to: "/admin", label: "এডমিন প্যানেল" }] : baseNav;
 
   async function handleSignOut() {
     await queryClient.cancelQueries();
@@ -70,15 +70,15 @@ export function AppShell({
           </nav>
           <div className="mt-auto space-y-3">
             <div className="rounded-xl bg-ink p-4 text-panel">
-              <p className="text-[11px] uppercase tracking-[0.15em] text-panel/50">Marking scheme</p>
-              <p className="mt-1 font-display text-2xl font-semibold leading-none">+1 · −0.25</p>
-              <p className="mt-2 text-xs text-panel/60">Unanswered questions score zero.</p>
+              <p className="text-[11px] uppercase tracking-[0.15em] text-panel/50">মার্কিং নম্বর</p>
+              <p className="mt-1 font-display text-2xl font-semibold leading-none">+১ · −০.২৫</p>
+              <p className="mt-2 text-xs text-panel/60">উত্তর না দিলে ০.০০ মার্ক।</p>
             </div>
             <button
               onClick={handleSignOut}
               className="w-full rounded-[10px] border border-line bg-panel/70 px-3 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
             >
-              Sign out
+              সাইন আউট
             </button>
           </div>
         </aside>
@@ -92,7 +92,7 @@ export function AppShell({
                 onClick={handleSignOut}
                 className="rounded-full border border-line bg-panel/70 px-3 py-1.5 text-xs font-medium text-ink-soft lg:hidden"
               >
-                Sign out
+                সাইন আউট
               </button>
             </div>
           </header>

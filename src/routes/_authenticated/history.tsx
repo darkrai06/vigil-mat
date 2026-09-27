@@ -7,10 +7,10 @@ import { AppShell } from "@/components/AppShell";
 export const Route = createFileRoute("/_authenticated/history")({
   head: () => ({
     meta: [
-      { title: "Attempt history — Vigil Exam Hall" },
-      { name: "description", content: "Every exam you have sat, with scores and full answer review." },
-      { property: "og:title", content: "Attempt history — Vigil Exam Hall" },
-      { property: "og:description", content: "Every exam you have sat, with scores and full answer review." },
+      { title: "পরীক্ষার ইতিহাস — Vigil Exam Hall" },
+      { name: "description", content: "আপনার দেওয়া প্রতিটি পরীক্ষা, প্রাপ্ত নম্বর ও বিস্তারিত উত্তর পর্যালোচনা।" },
+      { property: "og:title", content: "পরীক্ষার ইতিহাস — Vigil Exam Hall" },
+      { property: "og:description", content: "আপনার দেওয়া প্রতিটি পরীক্ষা, প্রাপ্ত নম্বর ও বিস্তারিত উত্তর পর্যালোচনা।" },
     ],
   }),
   component: HistoryPage,
@@ -26,16 +26,16 @@ function HistoryPage() {
       showAdmin={data?.isAdmin}
       headerLeft={
         <div>
-          <p className="text-[11px] uppercase tracking-[0.15em] text-ink-faint">Student</p>
-          <p className="mt-0.5 font-display text-sm font-semibold leading-none">Attempt history</p>
+          <p className="text-[11px] uppercase tracking-[0.15em] text-ink-faint">শিক্ষার্থী</p>
+          <p className="mt-0.5 font-display text-sm font-semibold leading-none">পরীক্ষার ইতিহাস</p>
         </div>
       }
     >
       {isLoading ? (
-        <p className="text-sm text-ink-soft">Loading your history…</p>
+        <p className="text-sm text-ink-soft">ইতিহাস লোড হচ্ছে…</p>
       ) : attempts.length === 0 ? (
         <div className="panel-glass rounded-2xl p-6 text-sm text-ink-soft">
-          You have not sat an exam yet. Once you submit one, it will be stored here permanently.
+          আপনি এখনও কোনো পরীক্ষা দেননি। পরীক্ষা দেওয়ার পর আপনার ফলাফল এখানে স্থায়ীভাবে সংরক্ষিত থাকবে।
         </div>
       ) : (
         <div className="fade-up grid gap-3">
@@ -49,7 +49,7 @@ function HistoryPage() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
                   <p className="truncate font-display text-base font-semibold leading-tight">{attempt.examTitle}</p>
-                  <p className="mt-1 text-xs text-ink-faint">{new Date(attempt.submittedAt).toLocaleString()}</p>
+                  <p className="mt-1 text-xs text-ink-faint">{new Date(attempt.submittedAt).toLocaleString("bn-BD")}</p>
                 </div>
                 <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
                   {attempt.score} / {attempt.totalQuestions}
@@ -57,16 +57,16 @@ function HistoryPage() {
               </div>
               <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs">
                 <span className="text-ink-soft">
-                  Questions <span className="font-semibold text-ink tabular-nums">{attempt.totalQuestions}</span>
+                  প্রশ্ন <span className="font-semibold text-ink tabular-nums">{attempt.totalQuestions}টি</span>
                 </span>
                 <span className="text-correct">
-                  Correct <span className="font-semibold tabular-nums">{attempt.correctCount}</span>
+                  সঠিক <span className="font-semibold tabular-nums">{attempt.correctCount}</span>
                 </span>
                 <span className="text-wrong">
-                  Wrong <span className="font-semibold tabular-nums">{attempt.wrongCount}</span>
+                  ভুল <span className="font-semibold tabular-nums">{attempt.wrongCount}</span>
                 </span>
                 <span className="text-amber">
-                  Unanswered <span className="font-semibold tabular-nums">{attempt.unansweredCount}</span>
+                  উত্তর না দেওয়া <span className="font-semibold tabular-nums">{attempt.unansweredCount}</span>
                 </span>
               </div>
             </Link>

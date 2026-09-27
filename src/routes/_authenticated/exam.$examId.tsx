@@ -19,16 +19,16 @@ import {
 export const Route = createFileRoute("/_authenticated/exam/$examId")({
   head: () => ({
     meta: [
-      { title: "Exam in progress — Vigil Exam Hall" },
-      { name: "description", content: "Answer sheet with question navigator and negative marking." },
-      { property: "og:title", content: "Exam in progress — Vigil Exam Hall" },
-      { property: "og:description", content: "Answer sheet with question navigator and negative marking." },
+      { title: "পরীক্ষা চলছে — Vigil Exam Hall" },
+      { name: "description", content: "প্রশ্ন নেভিগেটর ও নেগেটিভ মার্কিং সহ উত্তরপত্র।" },
+      { property: "og:title", content: "পরীক্ষা চলছে — Vigil Exam Hall" },
+      { property: "og:description", content: "প্রশ্ন নেভিগেটর ও নেগেটিভ মার্কিং সহ উত্তরপত্র।" },
     ],
   }),
   component: ExamPage,
 });
 
-const LETTERS = ["A", "B", "C", "D", "E", "F", "G", "H"];
+const LETTERS = ["ক", "খ", "গ", "ঘ", "ঙ", "চ", "ছ", "জ"];
 
 function ExamPage() {
   const { examId } = Route.useParams();
@@ -50,13 +50,13 @@ function ExamPage() {
     onSuccess: (result) => {
       navigate({ to: "/results/$attemptId", params: { attemptId: result.attemptId }, replace: true });
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "Could not submit your exam."),
+    onError: (error) => toast.error(error instanceof Error ? error.message : "পরীক্ষা জমা দেওয়া সম্ভব হয়নি।"),
   });
 
   if (isLoading || !data) {
     return (
-      <AppShell headerLeft={<p className="text-sm text-ink-soft">Preparing your answer sheet…</p>}>
-        <p className="text-sm text-ink-soft">Loading questions…</p>
+      <AppShell headerLeft={<p className="text-sm text-ink-soft">উত্তরপত্র প্রস্তুত করা হচ্ছে…</p>}>
+        <p className="text-sm text-ink-soft">প্রশ্নগুলো লোড হচ্ছে…</p>
       </AppShell>
     );
   }
@@ -64,6 +64,7 @@ function ExamPage() {
   const questions = data.questions;
   const current = questions[index];
   const answeredCount = questions.filter((q) => answers[q.id]).length;
+  const unansweredCount = questions.length - answeredCount;
 
   return (
     <AppShell
@@ -74,7 +75,7 @@ function ExamPage() {
           </div>
           <div className="min-w-0">
             <p className="font-display text-sm font-semibold leading-none">
-              Question {index + 1} / {questions.length}
+              প্রশ্ন {index + 1} / {questions.length}
             </p>
             <p className="mt-1 truncate text-xs text-ink-faint">{data.exam.title}</p>
           </div>
@@ -84,7 +85,7 @@ function ExamPage() {
         <div className="hidden items-center gap-2 rounded-full bg-panel/70 px-3 py-1.5 ring-1 ring-black/5 sm:flex">
           <span className="size-2 rounded-full bg-correct" />
           <span className="text-xs font-medium text-ink-soft">
-            {answeredCount} answered · {questions.length - answeredCount} left
+            {answeredCount}টি উত্তর দেওয়া হয়েছে · {unansweredCount}টি বাকি
           </span>
         </div>
       }
@@ -92,8 +93,8 @@ function ExamPage() {
       <section className="grid gap-5 lg:grid-cols-[1fr_260px]">
         <div className="fade-up panel-glass rounded-2xl p-6 sm:p-8">
           <div className="flex items-center justify-between">
-            <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-medium text-brand">Single correct</span>
-            <span className="text-xs text-ink-faint">+1 · −0.25</span>
+            <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-medium text-brand">একক সঠিক উত্তর</span>
+            <span className="text-xs text-ink-faint">+১ · −০.২৫</span>
           </div>
           <h2 className="mt-5 max-w-[40ch] text-balance font-display text-xl font-semibold leading-tight sm:text-2xl">
             {current?.prompt}
@@ -136,7 +137,7 @@ function ExamPage() {
               disabled={index === 0}
               className="rounded-[10px] px-4 py-2.5 text-sm font-medium text-ink-soft disabled:opacity-40"
             >
-              Previous
+              পূর্ববর্তী
             </button>
             <div className="flex items-center gap-2">
               {current && answers[current.id] && (
@@ -144,7 +145,7 @@ function ExamPage() {
                   onClick={() => setAnswers((prev) => ({ ...prev, [current.id]: null }))}
                   className="rounded-[10px] px-3 py-2.5 text-sm font-medium text-ink-faint"
                 >
-                  Clear
+                  মুছে ফেলুন
                 </button>
               )}
               {index < questions.length - 1 ? (
@@ -152,14 +153,14 @@ function ExamPage() {
                   onClick={() => setIndex((i) => Math.min(questions.length - 1, i + 1))}
                   className="rounded-[10px] bg-brand px-5 py-2.5 text-sm font-semibold text-on-brand transition-colors hover:bg-brand/90"
                 >
-                  Next question
+                  পরবর্তী প্রশ্ন
                 </button>
               ) : (
                 <button
                   onClick={() => setConfirmOpen(true)}
                   className="rounded-[10px] bg-ink px-5 py-2.5 text-sm font-semibold text-panel"
                 >
-                  Submit exam
+                  পরীক্ষা জমা দিন
                 </button>
               )}
             </div>
@@ -168,9 +169,9 @@ function ExamPage() {
 
         <aside className="panel-glass h-fit rounded-2xl p-5">
           <div className="flex items-center justify-between">
-            <p className="font-display text-sm font-semibold">Navigator</p>
+            <p className="font-display text-sm font-semibold">প্রশ্ন নেভিগেটর</p>
             <span className="text-xs text-ink-faint">
-              {index + 1} of {questions.length}
+              {index + 1} / {questions.length}
             </span>
           </div>
           <div className="mt-4 grid grid-cols-5 gap-2">
@@ -197,22 +198,22 @@ function ExamPage() {
           <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink-faint">
             <span className="flex items-center gap-1.5">
               <span className="size-2.5 rounded-full bg-correct" />
-              Answered
+              উত্তর দেওয়া হয়েছে
             </span>
             <span className="flex items-center gap-1.5">
               <span className="size-2.5 rounded-full bg-ink" />
-              Current
+              বর্তমান প্রশ্ন
             </span>
             <span className="flex items-center gap-1.5">
               <span className="size-2.5 rounded-full bg-paper ring-1 ring-line" />
-              Pending
+              বাকি আছে
             </span>
           </div>
           <button
             onClick={() => setConfirmOpen(true)}
             className="mt-5 w-full rounded-[10px] bg-ink px-4 py-2.5 text-sm font-semibold text-panel"
           >
-            Submit exam
+            পরীক্ষা জমা দিন
           </button>
         </aside>
       </section>
@@ -220,19 +221,19 @@ function ExamPage() {
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Submit your exam?</AlertDialogTitle>
+            <AlertDialogTitle>আপনি কি পরীক্ষা জমা দিতে চান?</AlertDialogTitle>
             <AlertDialogDescription>
-              You have answered {answeredCount} of {questions.length} questions.{" "}
-              {questions.length - answeredCount > 0
-                ? `${questions.length - answeredCount} will be left unanswered and score zero.`
-                : "Every question has an answer."}{" "}
-              You cannot change your answers after submitting.
+              আপনি {questions.length}টি প্রশ্নের মধ্যে {answeredCount}টি প্রশ্নের উত্তর দিয়েছেন।{" "}
+              {unansweredCount > 0
+                ? `${unansweredCount}টি প্রশ্নের উত্তর দেওয়া হয়নি এবং সেগুলোতে ০ মার্ক পাবেন।`
+                : "সব প্রশ্নের উত্তর দেওয়া হয়েছে।"}{" "}
+              পরীক্ষা জমা দেওয়ার পর আর উত্তর পরিবর্তন করতে পারবেন না।
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep working</AlertDialogCancel>
+            <AlertDialogCancel>আরও উত্তর দিন</AlertDialogCancel>
             <AlertDialogAction onClick={() => submission.mutate()} disabled={submission.isPending}>
-              {submission.isPending ? "Submitting…" : "Submit exam"}
+              {submission.isPending ? "জমা হচ্ছে…" : "পরীক্ষা জমা দিন"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
