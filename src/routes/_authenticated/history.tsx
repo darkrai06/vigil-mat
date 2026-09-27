@@ -1,0 +1,78 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getStudentHome } from "@/lib/exam.functions";
+import { AppShell } from "@/components/AppShell";
+
+export const Route = createFileRoute("/_authenticated/history")({
+  head: () => ({
+    meta: [
+      { title: "Attempt history — Vigil Exam Hall" },
+      { name: "description", content: "Every exam you have sat, with scores and full answer review." },
+      { property: "og:title", content: "Attempt history — Vigil Exam Hall" },
+      { property: "og:description", content: "Every exam you have sat, with scores and full answer review." },
+    ],
+  }),
+  component: HistoryPage,
+});
+
+function HistoryPage() {
+  const fetchHome = useServerFn(getStudentHome);
+  const { data, isLoading } = useQuery({ queryKey: ["student-home"], queryFn: () => fetchHome() });
+  const attempts = data?.attempts ?? [];
+
+  return (
+    <AppShell
+      showAdmin={data?.isAdmin}
+      headerLeft={
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.15em] text-ink-faint">Student</p>
+          <p className="mt-0.5 font-display text-sm font-semibold leading-none">Attempt history</p>
+        </div>
+      }
+    >
+      {isLoading ? (
+        <p className="text-sm text-ink-soft">Loading your history…</p>
+      ) : attempts.length === 0 ? (
+        <div className="panel-glass rounded-2xl p-6 text-sm text-ink-soft">
+          You have not sat an exam yet. Once you submit one, it will be stored here permanently.
+        </div>
+      ) : (
+        <div className="fade-up grid gap-3">
+          {attempts.map((attempt) => (
+            <Link
+              key={attempt.id}
+              to="/results/$attemptId"
+              params={{ attemptId: attempt.id }}
+              className="panel-glass rounded-2xl p-5 transition-colors hover:bg-panel"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate font-display text-base font-semibold leading-tight">{attempt.examTitle}</p>
+                  <p className="mt-1 text-xs text-ink-faint">{new Date(attempt.submittedAt).toLocaleString()}</p>
+                </div>
+                <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-semibold text-brand">
+                  {attempt.score} / {attempt.totalQuestions}
+                </span>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs">
+                <span className="text-ink-soft">
+                  Questions <span className="font-semibold text-ink tabular-nums">{attempt.totalQuestions}</span>
+                </span>
+                <span className="text-correct">
+                  Correct <span className="font-semibold tabular-nums">{attempt.correctCount}</span>
+                </span>
+                <span className="text-wrong">
+                  Wrong <span className="font-semibold tabular-nums">{attempt.wrongCount}</span>
+                </span>
+                <span className="text-amber">
+                  Unanswered <span className="font-semibold tabular-nums">{attempt.unansweredCount}</span>
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </AppShell>
+  );
+}
