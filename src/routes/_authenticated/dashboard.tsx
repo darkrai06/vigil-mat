@@ -78,7 +78,7 @@ function Dashboard() {
                     <span className="rounded-full bg-brand-soft px-3 py-1 text-xs font-medium text-brand">
                       Today&apos;s exam
                     </span>
-                    <span className="text-xs text-ink-faint">{data.currentExam.questionCount} questions</span>
+                    <span className="text-xs text-ink-faint">{data.currentExam.questionCount} questions · {data.currentExam.durationMinutes} min</span>
                   </div>
                   <h2 className="mt-5 max-w-[40ch] text-balance font-display text-xl font-semibold leading-tight sm:text-2xl">
                     {data.currentExam.title}
@@ -96,7 +96,7 @@ function Dashboard() {
                     >
                       Start exam
                     </Link>
-                    <span className="text-xs text-ink-faint">No time limit · submit when you are ready</span>
+                    <span className="text-xs text-ink-faint">{data.currentExam.durationMinutes} minutes · timer starts when you enter the arena</span>
                   </div>
                 </>
               ) : (
