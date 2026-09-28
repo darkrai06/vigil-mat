@@ -8,6 +8,13 @@
       "when": 1790514039561,
       "tag": "0000_exam_platform_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790595278063,
+      "tag": "0001_exam_timer_sessions",
+      "breakpoints": true
     }
   ]
 }

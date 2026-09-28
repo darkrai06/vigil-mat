@@ -97,11 +97,57 @@ export type Database = {
           },
         ]
       }
+      exam_sessions: {
+        Row: {
+          answers: Json
+          attempt_id: string | null
+          deadline: string
+          exam_id: string
+          id: string
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          answers?: Json
+          attempt_id?: string | null
+          deadline: string
+          exam_id: string
+          id?: string
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          attempt_id?: string | null
+          deadline?: string
+          exam_id?: string
+          id?: string
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_sessions_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_sessions_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exams: {
         Row: {
           created_at: string
           created_by: string | null
           description: string
+          duration_minutes: number
           id: string
           is_current: boolean
           is_published: boolean
@@ -112,6 +158,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string
+          duration_minutes?: number
           id?: string
           is_current?: boolean
           is_published?: boolean
@@ -122,6 +169,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string
+          duration_minutes?: number
           id?: string
           is_current?: boolean
           is_published?: boolean
