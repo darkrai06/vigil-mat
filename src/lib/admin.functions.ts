@@ -5,6 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export const examUploadSchema = z.object({
   title: z.string().min(1, "title is required"),
   description: z.string().optional(),
+  time: z.number({ required_error: "time (minutes) is required", invalid_type_error: "time must be a number of minutes" }).int("time must be a whole number of minutes").min(1, "time must be at least 1 minute").max(600, "time cannot exceed 600 minutes"),
   questions: z
     .array(
       z.object({
@@ -45,7 +46,7 @@ export const getAdminOverview = createServerFn({ method: "GET" })
     const [{ data: exams }, { data: attempts }, { data: students }] = await Promise.all([
       supabaseAdmin
         .from("exams")
-        .select("id, title, description, question_count, is_published, is_current, created_at")
+        .select("id, title, description, question_count, duration_minutes, is_published, is_current, created_at")
         .order("created_at", { ascending: false }),
       supabaseAdmin
         .from("attempts")
@@ -86,6 +87,7 @@ export const getAdminOverview = createServerFn({ method: "GET" })
         title: e.title,
         description: e.description,
         questionCount: e.question_count,
+        durationMinutes: e.duration_minutes,
         isPublished: e.is_published,
         isCurrent: e.is_current,
         createdAt: e.created_at,
@@ -122,6 +124,7 @@ export const publishExam = createServerFn({ method: "POST" })
         title: exam.title,
         description: exam.description ?? "",
         question_count: exam.questions.length,
+        duration_minutes: exam.time,
         is_published: true,
         is_current: data.setCurrent,
         created_by: context.userId,
@@ -151,7 +154,7 @@ export const publishExam = createServerFn({ method: "POST" })
 export const updateExam = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (input: { examId: string; title?: string; description?: string; isPublished?: boolean; isCurrent?: boolean }) =>
+    (input: { examId: string; title?: string; description?: string; isPublished?: boolean; isCurrent?: boolean; durationMinutes?: number }) =>
       input,
   )
   .handler(async ({ data, context }) => {
@@ -161,6 +164,10 @@ export const updateExam = createServerFn({ method: "POST" })
     if (data.description !== undefined) patch["description"] = data.description;
     if (data.isPublished !== undefined) patch["is_published"] = data.isPublished;
     if (data.isCurrent !== undefined) patch["is_current"] = data.isCurrent;
+    if (data.durationMinutes !== undefined) {
+      if (!Number.isInteger(data.durationMinutes) || data.durationMinutes < 1) throw new Error("Time must be at least 1 minute.");
+      patch["duration_minutes"] = data.durationMinutes;
+    }
 
     const { error } = await supabaseAdmin.from("exams").update(patch).eq("id", data.examId);
     if (error) throw new Error("Could not update the exam.");
@@ -195,4 +202,46 @@ export const getExamQuestions = createServerFn({ method: "POST" })
       options: Array.isArray(q.options) ? q.options.map((o) => String(o)) : [],
       correctAnswer: q.correct_answer,
     }));
+  });
+
+export const getStudentPerformance = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const supabaseAdmin = await assertAdmin(context.userId);
+    const [{ data: students }, { data: attempts }, { data: exams }, { data: admins }] = await Promise.all([
+      supabaseAdmin.from("profiles").select("id, full_name, email, created_at"),
+      supabaseAdmin
+        .from("attempts")
+        .select("id, exam_id, user_id, score, total_questions, correct_count, wrong_count, unanswered_count, submitted_at")
+        .order("submitted_at", { ascending: false }),
+      supabaseAdmin.from("exams").select("id, title"),
+      supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin"),
+    ]);
+    const adminIds = new Set((admins ?? []).map((a) => a.user_id));
+    const titleById = new Map((exams ?? []).map((e) => [e.id, e.title]));
+    return (students ?? [])
+      .filter((s) => !adminIds.has(s.id))
+      .map((s) => {
+        const mine = (attempts ?? []).filter((a) => a.user_id === s.id);
+        const pcts = mine.map((a) => (a.total_questions ? (Number(a.score) / a.total_questions) * 100 : 0));
+        return {
+          id: s.id,
+          name: s.full_name || s.email || "Student",
+          email: s.email,
+          attemptCount: mine.length,
+          avgPercent: pcts.length ? Math.round(pcts.reduce((x, y) => x + y, 0) / pcts.length) : 0,
+          bestPercent: pcts.length ? Math.round(Math.max(...pcts)) : 0,
+          attempts: mine.map((a) => ({
+            id: a.id,
+            examTitle: titleById.get(a.exam_id) ?? "Exam",
+            score: Number(a.score),
+            totalQuestions: a.total_questions,
+            correctCount: a.correct_count,
+            wrongCount: a.wrong_count,
+            unansweredCount: a.unanswered_count,
+            submittedAt: a.submitted_at,
+          })),
+        };
+      })
+      .sort((a, b) => b.avgPercent - a.avgPercent);
   });

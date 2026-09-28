@@ -13,6 +13,7 @@ export type ExamSummary = {
   title: string;
   description: string;
   questionCount: number;
+  durationMinutes: number;
   createdAt: string;
 };
 
@@ -52,7 +53,7 @@ export const getStudentHome = createServerFn({ method: "GET" })
       supabaseAdmin.from("user_roles").select("role").eq("user_id", userId),
       supabaseAdmin
         .from("exams")
-        .select("id, title, description, question_count, created_at")
+        .select("id, title, description, question_count, duration_minutes, created_at")
         .eq("is_published", true)
         .eq("is_current", true)
         .maybeSingle(),
@@ -84,6 +85,7 @@ export const getStudentHome = createServerFn({ method: "GET" })
           title: currentRes.data.title,
           description: currentRes.data.description,
           questionCount: currentRes.data.question_count,
+          durationMinutes: currentRes.data.duration_minutes,
           createdAt: currentRes.data.created_at,
         }
       : null;
