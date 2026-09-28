@@ -55,6 +55,7 @@ export type Database = {
       }
       attempts: {
         Row: {
+          auto_submitted: boolean
           correct_count: number
           exam_id: string
           id: string
@@ -66,6 +67,7 @@ export type Database = {
           wrong_count: number
         }
         Insert: {
+          auto_submitted?: boolean
           correct_count: number
           exam_id: string
           id?: string
@@ -77,6 +79,7 @@ export type Database = {
           wrong_count: number
         }
         Update: {
+          auto_submitted?: boolean
           correct_count?: number
           exam_id?: string
           id?: string
@@ -97,11 +100,47 @@ export type Database = {
           },
         ]
       }
+      exam_sessions: {
+        Row: {
+          id: string
+          user_id: string
+          exam_id: string
+          started_at: string
+          deadline: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          exam_id: string
+          started_at?: string
+          deadline?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          exam_id?: string
+          started_at?: string
+          deadline?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_sessions_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exams: {
         Row: {
           created_at: string
           created_by: string | null
           description: string
+          duration_minutes: number | null
           id: string
           is_current: boolean
           is_published: boolean
@@ -112,6 +151,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string
+          duration_minutes?: number | null
           id?: string
           is_current?: boolean
           is_published?: boolean
@@ -122,6 +162,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string
+          duration_minutes?: number | null
           id?: string
           is_current?: boolean
           is_published?: boolean

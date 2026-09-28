@@ -2,9 +2,12 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+const ADMIN_EMAIL = (process.env["ADMIN_EMAIL"] || "mmalmahin@gmail.com").toLowerCase();
+
 export const examUploadSchema = z.object({
   title: z.string().min(1, "title is required"),
   description: z.string().optional(),
+  time: z.number().int().min(1, "time must be at least 1 minute").optional(),
   questions: z
     .array(
       z.object({
@@ -21,10 +24,10 @@ export type ExamUpload = z.infer<typeof examUploadSchema>;
 async function assertAdmin(userId: string, email?: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-  let isTargetEmail = email?.toLowerCase() === "mmalmahin@gmail.com";
+  let isTargetEmail = email?.toLowerCase() === ADMIN_EMAIL;
   if (!isTargetEmail) {
     const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
-    if (userData?.user?.email?.toLowerCase() === "mmalmahin@gmail.com") {
+    if (userData?.user?.email?.toLowerCase() === ADMIN_EMAIL) {
       isTargetEmail = true;
     }
   }
@@ -37,7 +40,7 @@ async function assertAdmin(userId: string, email?: string) {
   }
 
   const { data } = await supabaseAdmin.rpc("has_role", { _user_id: userId, _role: "admin" });
-  if (!data) throw new Error("এডমিন অ্যাক্সেস প্রয়োজন।");
+  if (!data) throw new Error("এডমিন অ্যাক্সেস প্রয়োজন।");
   return supabaseAdmin;
 }
 
@@ -61,37 +64,41 @@ export const getAdminOverview = createServerFn({ method: "GET" })
     const [{ data: exams }, { data: attempts }, { data: students }] = await Promise.all([
       supabaseAdmin
         .from("exams")
-        .select("id, title, description, question_count, is_published, is_current, created_at")
+        .select("id, title, description, question_count, is_published, is_current, created_at, duration_minutes")
         .order("created_at", { ascending: false }),
       supabaseAdmin
         .from("attempts")
-        .select("id, exam_id, user_id, score, total_questions, correct_count, wrong_count, unanswered_count, submitted_at")
-        .order("submitted_at", { ascending: false })
-        .limit(100),
+        .select("id, exam_id, user_id, score, total_questions, correct_count, wrong_count, unanswered_count, submitted_at, auto_submitted")
+        .order("submitted_at", { ascending: false }),
       supabaseAdmin.from("profiles").select("id, full_name, email"),
     ]);
 
     const nameById = new Map((students ?? []).map((s) => [s.id, s.full_name || s.email || "Student"]));
+    const emailById = new Map((students ?? []).map((s) => [s.id, s.email || ""]));
     const titleById = new Map((exams ?? []).map((e) => [e.id, e.title]));
 
-    const recentAttempts = (attempts ?? []).map((a) => ({
+    const allAttempts = (attempts ?? []).map((a) => ({
       id: a.id,
+      userId: a.user_id,
       studentName: nameById.get(a.user_id) ?? "Student",
+      studentEmail: emailById.get(a.user_id) ?? "",
       examTitle: titleById.get(a.exam_id) ?? "Exam",
+      examId: a.exam_id,
       score: Number(a.score),
       totalQuestions: a.total_questions,
       correctCount: a.correct_count,
       wrongCount: a.wrong_count,
       unansweredCount: a.unanswered_count,
       submittedAt: a.submitted_at,
+      autoSubmitted: a.auto_submitted ?? false,
     }));
 
-    const totalAttempts = recentAttempts.length;
+    const totalAttempts = allAttempts.length;
     const avgPercent =
       totalAttempts === 0
         ? 0
         : Math.round(
-            (recentAttempts.reduce((sum, a) => sum + (a.totalQuestions ? a.score / a.totalQuestions : 0), 0) /
+            (allAttempts.reduce((sum, a) => sum + (a.totalQuestions ? a.score / a.totalQuestions : 0), 0) /
               totalAttempts) *
               100,
           );
@@ -105,8 +112,9 @@ export const getAdminOverview = createServerFn({ method: "GET" })
         isPublished: e.is_published,
         isCurrent: e.is_current,
         createdAt: e.created_at,
+        durationMinutes: e.duration_minutes,
       })),
-      recentAttempts,
+      recentAttempts: allAttempts,
       stats: {
         students: (students ?? []).length,
         attempts: totalAttempts,
@@ -141,6 +149,7 @@ export const publishExam = createServerFn({ method: "POST" })
         is_published: true,
         is_current: data.setCurrent,
         created_by: context.userId,
+        duration_minutes: exam.time ?? null,
       })
       .select("id")
       .single();

@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AmbientBackground } from "@/components/AmbientBackground";
+import { Footer } from "@/components/Footer";
 
 type NavItem = { to: string; label: string };
 
@@ -36,9 +37,9 @@ export function AppShell({
   }
 
   return (
-    <div className="min-h-screen bg-paper font-body text-ink">
+    <div className="flex min-h-screen flex-col bg-paper font-body text-ink">
       <AmbientBackground />
-      <div className="mx-auto flex max-w-[1440px]">
+      <div className="mx-auto flex flex-1 max-w-[1440px] w-full">
         <aside className="hidden w-60 shrink-0 flex-col gap-6 border-r border-line/70 bg-panel/55 px-5 py-6 backdrop-blur-2xl lg:flex">
           <Link to="/dashboard" className="flex items-center gap-2.5">
             <div className="grid size-9 place-items-center rounded-[10px] bg-ink font-display text-sm font-semibold text-panel">
@@ -117,6 +118,7 @@ export function AppShell({
           {children}
         </main>
       </div>
+      <Footer />
     </div>
   );
 }

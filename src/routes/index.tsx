@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AmbientBackground } from "@/components/AmbientBackground";
+import { Footer } from "@/components/Footer";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -97,9 +98,8 @@ function Landing() {
             </p>
           </div>
         </section>
-
-        <footer className="mt-auto pt-16 text-xs text-ink-faint">Vigil Exam Hall</footer>
       </div>
+      <Footer />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { AmbientBackground } from "@/components/AmbientBackground";
+import { Footer } from "@/components/Footer";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -151,7 +152,8 @@ function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-paper px-5 py-10 font-body text-ink">
+    <div className="flex min-h-screen flex-col bg-paper font-body text-ink">
+      <div className="flex flex-1 items-center justify-center px-5 py-10">
       <AmbientBackground />
       <div className="fade-up w-full max-w-md">
         <Link to="/" className="mb-6 flex items-center gap-2.5">
@@ -281,7 +283,8 @@ function AuthPage() {
           </p>
         </div>
       </div>
+      </div>
+      <Footer />
     </div>
   );
 }
-
