@@ -100,103 +100,214 @@ export const getStudentHome = createServerFn({ method: "GET" })
     };
   });
 
+// Grace period for network latency on auto-submit at the deadline.
+const GRACE_MS = 15_000;
+
+type AdminClient = Awaited<typeof import("@/integrations/supabase/client.server")>["supabaseAdmin"];
+
+async function gradeAndStore(
+  supabaseAdmin: AdminClient,
+  params: { sessionId: string; examId: string; userId: string; answers: Record<string, string | null> },
+) {
+  const { data: questions } = await supabaseAdmin
+    .from("questions")
+    .select("id, correct_answer, options")
+    .eq("exam_id", params.examId);
+  const list = questions ?? [];
+  if (list.length === 0) throw new Error("This exam has no questions.");
+
+  let correct = 0;
+  let wrong = 0;
+  let unanswered = 0;
+  const answerRows = list.map((q) => {
+    const raw = params.answers?.[q.id] ?? null;
+    const options = toOptions(q.options);
+    const selected = typeof raw === "string" && options.includes(raw) ? raw : null;
+    if (selected === null) {
+      unanswered += 1;
+      return { question_id: q.id, selected_answer: null, is_correct: false };
+    }
+    const isCorrect = selected === q.correct_answer;
+    if (isCorrect) correct += 1;
+    else wrong += 1;
+    return { question_id: q.id, selected_answer: selected, is_correct: isCorrect };
+  });
+  const score = Number((correct * 1 - wrong * 0.25).toFixed(2));
+
+  const { data: attempt, error } = await supabaseAdmin
+    .from("attempts")
+    .insert({
+      exam_id: params.examId,
+      user_id: params.userId,
+      total_questions: list.length,
+      correct_count: correct,
+      wrong_count: wrong,
+      unanswered_count: unanswered,
+      score,
+    })
+    .select("id")
+    .single();
+  if (error || !attempt) throw new Error("Could not save your exam. Please try again.");
+
+  await supabaseAdmin.from("attempt_answers").insert(answerRows.map((r) => ({ ...r, attempt_id: attempt.id })));
+
+  // Lock the session atomically; if another request already finalized it, discard this attempt.
+  const { data: locked } = await supabaseAdmin
+    .from("exam_sessions")
+    .update({ attempt_id: attempt.id, answers: params.answers })
+    .eq("id", params.sessionId)
+    .is("attempt_id", null)
+    .select("id");
+  if (!locked || locked.length === 0) {
+    await supabaseAdmin.from("attempts").delete().eq("id", attempt.id);
+    const { data: s } = await supabaseAdmin.from("exam_sessions").select("attempt_id").eq("id", params.sessionId).single();
+    return s?.attempt_id as string;
+  }
+  return attempt.id;
+}
+
+async function loadQuestions(supabaseAdmin: AdminClient, examId: string): Promise<PublicQuestion[]> {
+  const { data: rows } = await supabaseAdmin
+    .from("questions")
+    .select("id, position, prompt, options")
+    .eq("exam_id", examId)
+    .order("position", { ascending: true });
+  return (rows ?? []).map((q) => ({ id: q.id, position: q.position, prompt: q.prompt, options: toOptions(q.options) }));
+}
+
+async function findOpenSession(supabaseAdmin: AdminClient, examId: string, userId: string) {
+  const { data } = await supabaseAdmin
+    .from("exam_sessions")
+    .select("id, deadline, answers")
+    .eq("exam_id", examId)
+    .eq("user_id", userId)
+    .is("attempt_id", null)
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data;
+}
+
+// Exam lobby: no questions and no timer until the student enters the arena.
 export const getExamForTaking = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { examId: string }) => input)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
     const { data: exam } = await supabaseAdmin
       .from("exams")
-      .select("id, title, description, question_count, is_published")
+      .select("id, title, description, question_count, duration_minutes, is_published")
       .eq("id", data.examId)
       .maybeSingle();
-
     if (!exam || !exam.is_published) throw new Error("This exam is not available.");
 
-    const { data: rows } = await supabaseAdmin
-      .from("questions")
-      .select("id, position, prompt, options")
-      .eq("exam_id", data.examId)
-      .order("position", { ascending: true });
+    const open = await findOpenSession(supabaseAdmin, data.examId, context.userId);
+    let expiredAttemptId: string | null = null;
+    let session: { id: string; deadline: string; answers: Record<string, string | null> } | null = null;
+    let questions: PublicQuestion[] = [];
 
-    const questions: PublicQuestion[] = (rows ?? []).map((q) => ({
-      id: q.id,
-      position: q.position,
-      prompt: q.prompt,
-      options: toOptions(q.options),
-    }));
+    if (open) {
+      const answers = (open.answers ?? {}) as Record<string, string | null>;
+      if (Date.now() > new Date(open.deadline).getTime() + GRACE_MS) {
+        expiredAttemptId = await gradeAndStore(supabaseAdmin, {
+          sessionId: open.id,
+          examId: data.examId,
+          userId: context.userId,
+          answers,
+        });
+      } else {
+        session = { id: open.id, deadline: open.deadline, answers };
+        questions = await loadQuestions(supabaseAdmin, data.examId);
+      }
+    }
 
     return {
-      exam: { id: exam.id, title: exam.title, description: exam.description },
+      exam: {
+        id: exam.id,
+        title: exam.title,
+        description: exam.description,
+        questionCount: exam.question_count,
+        durationMinutes: exam.duration_minutes,
+      },
+      session,
       questions,
+      expiredAttemptId,
+      serverNow: new Date().toISOString(),
     };
+  });
+
+export const startExamSession = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { examId: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: exam } = await supabaseAdmin
+      .from("exams")
+      .select("id, duration_minutes, is_published")
+      .eq("id", data.examId)
+      .maybeSingle();
+    if (!exam || !exam.is_published) throw new Error("This exam is not available.");
+
+    let open = await findOpenSession(supabaseAdmin, data.examId, context.userId);
+    if (!open || Date.now() > new Date(open.deadline).getTime() + GRACE_MS) {
+      const deadline = new Date(Date.now() + exam.duration_minutes * 60_000).toISOString();
+      const { data: created, error } = await supabaseAdmin
+        .from("exam_sessions")
+        .insert({ exam_id: data.examId, user_id: context.userId, deadline })
+        .select("id, deadline, answers")
+        .single();
+      if (error || !created) throw new Error("Could not start the exam.");
+      open = created;
+    }
+
+    return {
+      session: { id: open.id, deadline: open.deadline, answers: (open.answers ?? {}) as Record<string, string | null> },
+      questions: await loadQuestions(supabaseAdmin, data.examId),
+      serverNow: new Date().toISOString(),
+    };
+  });
+
+// Autosave so a refresh keeps answers. Rejected after the deadline.
+export const saveSessionAnswers = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { sessionId: string; answers: Record<string, string | null> }) => input)
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: s } = await supabaseAdmin
+      .from("exam_sessions")
+      .select("id, user_id, deadline, attempt_id")
+      .eq("id", data.sessionId)
+      .maybeSingle();
+    if (!s || s.user_id !== context.userId || s.attempt_id) return { ok: false };
+    if (Date.now() > new Date(s.deadline).getTime()) return { ok: false };
+    await supabaseAdmin.from("exam_sessions").update({ answers: data.answers }).eq("id", s.id);
+    return { ok: true };
   });
 
 export const submitAttempt = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { examId: string; answers: Record<string, string | null> }) => input)
+  .inputValidator((input: { sessionId: string; answers: Record<string, string | null> }) => input)
   .handler(async ({ data, context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const userId = context.userId;
-
-    const { data: exam } = await supabaseAdmin
-      .from("exams")
-      .select("id, is_published")
-      .eq("id", data.examId)
+    const { data: s } = await supabaseAdmin
+      .from("exam_sessions")
+      .select("id, user_id, exam_id, deadline, attempt_id, answers")
+      .eq("id", data.sessionId)
       .maybeSingle();
-    if (!exam || !exam.is_published) throw new Error("This exam is not available.");
+    if (!s || s.user_id !== context.userId) throw new Error("Exam session not found.");
+    if (s.attempt_id) return { attemptId: s.attempt_id };
 
-    const { data: questions } = await supabaseAdmin
-      .from("questions")
-      .select("id, correct_answer, options")
-      .eq("exam_id", data.examId);
+    // After the deadline (plus grace) the server ignores new client answers and uses the last autosave.
+    const late = Date.now() > new Date(s.deadline).getTime() + GRACE_MS;
+    const answers = late ? ((s.answers ?? {}) as Record<string, string | null>) : data.answers;
 
-    const list = questions ?? [];
-    if (list.length === 0) throw new Error("This exam has no questions.");
-
-    let correct = 0;
-    let wrong = 0;
-    let unanswered = 0;
-
-    const answerRows = list.map((q) => {
-      const raw = data.answers?.[q.id] ?? null;
-      const options = toOptions(q.options);
-      const selected = raw !== null && options.includes(raw) ? raw : null;
-      if (selected === null) {
-        unanswered += 1;
-        return { question_id: q.id, selected_answer: null, is_correct: false };
-      }
-      const isCorrect = selected === q.correct_answer;
-      if (isCorrect) correct += 1;
-      else wrong += 1;
-      return { question_id: q.id, selected_answer: selected, is_correct: isCorrect };
+    const attemptId = await gradeAndStore(supabaseAdmin, {
+      sessionId: s.id,
+      examId: s.exam_id,
+      userId: context.userId,
+      answers,
     });
-
-    const score = Number((correct * 1 - wrong * 0.25).toFixed(2));
-
-    const { data: attempt, error } = await supabaseAdmin
-      .from("attempts")
-      .insert({
-        exam_id: data.examId,
-        user_id: userId,
-        total_questions: list.length,
-        correct_count: correct,
-        wrong_count: wrong,
-        unanswered_count: unanswered,
-        score,
-      })
-      .select("id")
-      .single();
-
-    if (error || !attempt) throw new Error("Could not save your exam. Please try again.");
-
-    const { error: answerError } = await supabaseAdmin
-      .from("attempt_answers")
-      .insert(answerRows.map((r) => ({ ...r, attempt_id: attempt.id })));
-    if (answerError) throw new Error("Could not save your answers. Please try again.");
-
-    return { attemptId: attempt.id };
+    return { attemptId };
   });
 
 export const getAttemptReview = createServerFn({ method: "POST" })
