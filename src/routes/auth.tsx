@@ -30,6 +30,10 @@ function AuthPage() {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/dashboard", replace: true });
     });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (session) navigate({ to: "/dashboard", replace: true });
+    });
+    return () => sub.subscription.unsubscribe();
   }, [navigate]);
 
   async function handleSubmit(event: React.FormEvent) {
@@ -61,7 +65,7 @@ function AuthPage() {
   async function handleGoogle() {
     const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
     if (result.error) {
-      toast.error("Google sign-in did not complete.");
+      toast.error(result.error.message || "Google sign-in did not complete.");
       return;
     }
     if (result.redirected) return;
