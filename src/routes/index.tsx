@@ -1,4 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { AmbientBackground } from "@/components/AmbientBackground";
 
 export const Route = createFileRoute("/")({
@@ -21,6 +23,17 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
+  const navigate = useNavigate();
+  // After Google sign-in (esp. on phones) the user lands back here; forward them.
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) navigate({ to: "/dashboard", replace: true });
+    });
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session && (event === "SIGNED_IN" || event === "INITIAL_SESSION")) navigate({ to: "/dashboard", replace: true });
+    });
+    return () => data.subscription.unsubscribe();
+  }, [navigate]);
   return (
     <div className="min-h-screen bg-paper font-body text-ink">
       <AmbientBackground />
