@@ -352,7 +352,10 @@ function UploadTab({ onDone }: { onDone: () => void }) {
 
   async function onFile(file: File | undefined) {
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) return toast.error("File is larger than 2MB.");
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("File is larger than 2MB.");
+      return;
+    }
     const content = await file.text();
     setText(content);
     setResult(validate(content));
