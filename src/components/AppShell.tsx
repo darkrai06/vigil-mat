@@ -18,9 +18,9 @@ export function AppShell({
   headerRight,
 }: {
   children: ReactNode;
-  showAdmin?: boolean;
-  headerLeft?: ReactNode;
-  headerRight?: ReactNode;
+  showAdmin?: boolean | undefined;
+  headerLeft?: ReactNode | undefined;
+  headerRight?: ReactNode | undefined;
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();

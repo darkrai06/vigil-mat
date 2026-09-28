@@ -159,14 +159,14 @@ export const updateExam = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const supabaseAdmin = await assertAdmin(context.userId);
-    const patch: Record<string, unknown> = {};
-    if (data.title !== undefined) patch["title"] = data.title;
-    if (data.description !== undefined) patch["description"] = data.description;
-    if (data.isPublished !== undefined) patch["is_published"] = data.isPublished;
-    if (data.isCurrent !== undefined) patch["is_current"] = data.isCurrent;
+    const patch: { title?: string; description?: string; is_published?: boolean; is_current?: boolean; duration_minutes?: number } = {};
+    if (data.title !== undefined) patch.title = data.title;
+    if (data.description !== undefined) patch.description = data.description;
+    if (data.isPublished !== undefined) patch.is_published = data.isPublished;
+    if (data.isCurrent !== undefined) patch.is_current = data.isCurrent;
     if (data.durationMinutes !== undefined) {
       if (!Number.isInteger(data.durationMinutes) || data.durationMinutes < 1) throw new Error("Time must be at least 1 minute.");
-      patch["duration_minutes"] = data.durationMinutes;
+      patch.duration_minutes = data.durationMinutes;
     }
 
     const { error } = await supabaseAdmin.from("exams").update(patch).eq("id", data.examId);
