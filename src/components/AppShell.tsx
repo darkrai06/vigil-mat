@@ -3,13 +3,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AmbientBackground } from "@/components/AmbientBackground";
-import { Footer } from "@/components/Footer";
 
 type NavItem = { to: string; label: string };
 
 const baseNav: NavItem[] = [
-  { to: "/dashboard", label: "আজকের পরীক্ষা" },
-  { to: "/history", label: "পরীক্ষার ইতিহাস" },
+  { to: "/dashboard", label: "Today's exam" },
+  { to: "/history", label: "Attempt history" },
 ];
 
 export function AppShell({
@@ -27,7 +26,7 @@ export function AppShell({
   const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-  const items = showAdmin ? [...baseNav, { to: "/admin", label: "এডমিন প্যানেল" }] : baseNav;
+  const items = showAdmin ? [...baseNav, { to: "/admin", label: "Admin" }] : baseNav;
 
   async function handleSignOut() {
     await queryClient.cancelQueries();
@@ -37,9 +36,9 @@ export function AppShell({
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-paper font-body text-ink">
+    <div className="min-h-screen bg-paper font-body text-ink">
       <AmbientBackground />
-      <div className="mx-auto flex flex-1 max-w-[1440px] w-full">
+      <div className="mx-auto flex max-w-[1440px]">
         <aside className="hidden w-60 shrink-0 flex-col gap-6 border-r border-line/70 bg-panel/55 px-5 py-6 backdrop-blur-2xl lg:flex">
           <Link to="/dashboard" className="flex items-center gap-2.5">
             <div className="grid size-9 place-items-center rounded-[10px] bg-ink font-display text-sm font-semibold text-panel">
@@ -71,15 +70,15 @@ export function AppShell({
           </nav>
           <div className="mt-auto space-y-3">
             <div className="rounded-xl bg-ink p-4 text-panel">
-              <p className="text-[11px] uppercase tracking-[0.15em] text-panel/50">মার্কিং নম্বর</p>
-              <p className="mt-1 font-display text-2xl font-semibold leading-none">+১ · −০.২৫</p>
-              <p className="mt-2 text-xs text-panel/60">উত্তর না দিলে ০.০০ মার্ক।</p>
+              <p className="text-[11px] uppercase tracking-[0.15em] text-panel/50">Marking scheme</p>
+              <p className="mt-1 font-display text-2xl font-semibold leading-none">+1 · −0.25</p>
+              <p className="mt-2 text-xs text-panel/60">Unanswered questions score zero.</p>
             </div>
             <button
               onClick={handleSignOut}
               className="w-full rounded-[10px] border border-line bg-panel/70 px-3 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:text-ink"
             >
-              সাইন আউট
+              Sign out
             </button>
           </div>
         </aside>
@@ -93,7 +92,7 @@ export function AppShell({
                 onClick={handleSignOut}
                 className="rounded-full border border-line bg-panel/70 px-3 py-1.5 text-xs font-medium text-ink-soft lg:hidden"
               >
-                সাইন আউট
+                Sign out
               </button>
             </div>
           </header>
@@ -118,7 +117,6 @@ export function AppShell({
           {children}
         </main>
       </div>
-      <Footer />
     </div>
   );
 }
