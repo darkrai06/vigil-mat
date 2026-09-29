@@ -35,8 +35,8 @@ export function UnsolvedQuestions() {
           {solvedIds.map((id) => (
             <SolvedCard
               key={id}
-              q={done[id].q}
-              r={done[id].r}
+              q={done[id]!.q}
+              r={done[id]!.r}
               onDismiss={() => {
                 setDone((d) => {
                   const n = { ...d };
