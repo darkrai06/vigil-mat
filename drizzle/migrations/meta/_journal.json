@@ -15,6 +15,13 @@
       "when": 1790595278063,
       "tag": "0001_exam_timer_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790669206196,
+      "tag": "0002_explanations_unsolved",
+      "breakpoints": true
     }
   ]
 }

@@ -203,6 +203,7 @@ export type Database = {
         Row: {
           correct_answer: string
           exam_id: string
+          explanation: string
           id: string
           options: Json
           position: number
@@ -211,6 +212,7 @@ export type Database = {
         Insert: {
           correct_answer: string
           exam_id: string
+          explanation?: string
           id?: string
           options: Json
           position: number
@@ -219,6 +221,7 @@ export type Database = {
         Update: {
           correct_answer?: string
           exam_id?: string
+          explanation?: string
           id?: string
           options?: Json
           position?: number
@@ -230,6 +233,64 @@ export type Database = {
             columns: ["exam_id"]
             isOneToOne: false
             referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      unsolved_questions: {
+        Row: {
+          attempt_id: string
+          created_at: string
+          exam_id: string
+          id: string
+          is_correct: boolean | null
+          question_id: string
+          selected_answer: string | null
+          solved_at: string | null
+          user_id: string
+        }
+        Insert: {
+          attempt_id: string
+          created_at?: string
+          exam_id: string
+          id?: string
+          is_correct?: boolean | null
+          question_id: string
+          selected_answer?: string | null
+          solved_at?: string | null
+          user_id: string
+        }
+        Update: {
+          attempt_id?: string
+          created_at?: string
+          exam_id?: string
+          id?: string
+          is_correct?: boolean | null
+          question_id?: string
+          selected_answer?: string | null
+          solved_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unsolved_questions_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unsolved_questions_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "unsolved_questions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
             referencedColumns: ["id"]
           },
         ]
