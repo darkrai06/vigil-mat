@@ -35,6 +35,7 @@ export type ReviewQuestion = {
   prompt: string;
   options: string[];
   correctAnswer: string;
+  explanation: string;
   selectedAnswer: string | null;
 };
 
@@ -164,6 +165,15 @@ async function gradeAndStore(
     await supabaseAdmin.from("attempts").delete().eq("id", attempt.id);
     const { data: s } = await supabaseAdmin.from("exam_sessions").select("attempt_id").eq("id", params.sessionId).single();
     return s?.attempt_id as string;
+  }
+
+  const unsolvedRows = answerRows
+    .filter((r) => r.selected_answer === null)
+    .map((r) => ({ user_id: params.userId, exam_id: params.examId, question_id: r.question_id, attempt_id: attempt.id }));
+  if (unsolvedRows.length > 0) {
+    await supabaseAdmin
+      .from("unsolved_questions")
+      .upsert(unsolvedRows, { onConflict: "attempt_id,question_id", ignoreDuplicates: true });
   }
   return attempt.id;
 }
@@ -335,7 +345,7 @@ export const getAttemptReview = createServerFn({ method: "POST" })
     const [{ data: questions }, { data: answers }] = await Promise.all([
       supabaseAdmin
         .from("questions")
-        .select("id, position, prompt, options, correct_answer")
+        .select("id, position, prompt, options, correct_answer, explanation")
         .eq("exam_id", attempt.exam_id)
         .order("position", { ascending: true }),
       supabaseAdmin.from("attempt_answers").select("question_id, selected_answer").eq("attempt_id", attempt.id),
@@ -349,6 +359,7 @@ export const getAttemptReview = createServerFn({ method: "POST" })
       prompt: q.prompt,
       options: toOptions(q.options),
       correctAnswer: q.correct_answer,
+      explanation: (q.explanation ?? "").trim(),
       selectedAnswer: selectedByQuestion.get(q.id) ?? null,
     }));
 
