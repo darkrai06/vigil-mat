@@ -135,34 +135,41 @@ function ResultsPage() {
                 <p className="mt-3 max-w-[60ch] font-display text-base font-semibold leading-snug">{q.prompt}</p>
                 <div className="mt-4 grid gap-2">
                   {q.options.map((option, i) => {
-                    const isCorrect = option === q.correctAnswer;
-                    const isSelectedWrong = option === q.selectedAnswer && !isCorrect;
+                    const isAnswer = option === q.correctAnswer;
+                    const isMissed = isAnswer && state === "skipped";
+                    const isCorrect = isAnswer && !isMissed;
+                    const isSelectedWrong = option === q.selectedAnswer && !isAnswer;
                     return (
                       <div
                         key={option + i}
                         className={
-                          isCorrect
-                            ? "flex items-center gap-3 rounded-xl bg-correct-soft/70 p-3 ring-1 ring-correct/25"
-                            : isSelectedWrong
-                              ? "flex items-center gap-3 rounded-xl bg-wrong-soft/70 p-3 ring-1 ring-wrong/25"
-                              : "flex items-center gap-3 rounded-xl bg-panel p-3 ring-1 ring-line"
+                          isMissed
+                            ? "flex items-center gap-3 rounded-xl bg-amber-soft/70 p-3 ring-1 ring-amber/30"
+                            : isCorrect
+                              ? "flex items-center gap-3 rounded-xl bg-correct-soft/70 p-3 ring-1 ring-correct/25"
+                              : isSelectedWrong
+                                ? "flex items-center gap-3 rounded-xl bg-wrong-soft/70 p-3 ring-1 ring-wrong/25"
+                                : "flex items-center gap-3 rounded-xl bg-panel p-3 ring-1 ring-line"
                         }
                       >
                         <span
                           className={
-                            isCorrect
-                              ? "grid size-6 shrink-0 place-items-center rounded-full bg-correct text-[11px] font-semibold text-panel"
-                              : isSelectedWrong
-                                ? "grid size-6 shrink-0 place-items-center rounded-full bg-wrong text-[11px] font-semibold text-panel"
-                                : "grid size-6 shrink-0 place-items-center rounded-full bg-paper text-[11px] font-semibold text-ink-soft"
+                            isMissed
+                              ? "grid size-6 shrink-0 place-items-center rounded-full bg-amber text-[11px] font-semibold text-panel"
+                              : isCorrect
+                                ? "grid size-6 shrink-0 place-items-center rounded-full bg-correct text-[11px] font-semibold text-panel"
+                                : isSelectedWrong
+                                  ? "grid size-6 shrink-0 place-items-center rounded-full bg-wrong text-[11px] font-semibold text-panel"
+                                  : "grid size-6 shrink-0 place-items-center rounded-full bg-paper text-[11px] font-semibold text-ink-soft"
                           }
                         >
                           {LETTERS[i] ?? i + 1}
                         </span>
-                        <span className="text-sm text-ink-soft">{option}</span>
-                        {isCorrect && <span className="ml-auto text-[11px] font-semibold text-correct">Correct answer</span>}
+                        <span className="min-w-0 break-words text-sm text-ink-soft">{option}</span>
+                        {isMissed && <span className="ml-auto shrink-0 text-[11px] font-semibold text-amber">Correct answer</span>}
+                        {isCorrect && <span className="ml-auto shrink-0 text-[11px] font-semibold text-correct">Correct answer</span>}
                         {isSelectedWrong && (
-                          <span className="ml-auto text-[11px] font-semibold text-wrong">Your answer</span>
+                          <span className="ml-auto shrink-0 text-[11px] font-semibold text-wrong">Your answer</span>
                         )}
                       </div>
                     );
@@ -170,6 +177,12 @@ function ResultsPage() {
                 </div>
                 {state === "skipped" && (
                   <p className="mt-3 text-xs font-medium text-amber">You did not answer this question.</p>
+                )}
+                {q.explanation && (
+                  <div className="mt-4 rounded-xl bg-paper/70 p-4 ring-1 ring-line">
+                    <p className="text-xs font-semibold text-ink">Explanation:</p>
+                    <p className="mt-1 whitespace-pre-line break-words text-sm leading-relaxed text-ink-soft">{q.explanation}</p>
+                  </div>
                 )}
               </div>
             );
