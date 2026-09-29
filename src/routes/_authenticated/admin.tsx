@@ -36,7 +36,14 @@ const SAMPLE = `{
     {
       "question": "What is the capital of Bangladesh?",
       "options": ["Chittagong", "Dhaka", "Rajshahi", "Sylhet"],
-      "correctAnswer": "Dhaka"
+      "correctAnswer": "Dhaka",
+      "explanation": "Dhaka is the capital and largest city of Bangladesh."
+    },
+    {
+      "question": "Which planet is known as the Red Planet?",
+      "options": ["Earth", "Mars", "Jupiter", "Venus"],
+      "correctAnswer": "Mars",
+      "explanation": ""
     }
   ]
 }`;

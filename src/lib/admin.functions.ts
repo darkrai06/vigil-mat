@@ -12,6 +12,7 @@ export const examUploadSchema = z.object({
         question: z.string().min(1, "question text is required"),
         options: z.array(z.string().min(1, "option text cannot be empty")).min(2, "at least 2 options required"),
         correctAnswer: z.string().min(1, "correctAnswer is required"),
+        explanation: z.string({ invalid_type_error: "explanation must be text (use \"\" for none)" }).optional(),
       }),
     )
     .min(1, "at least one question is required"),
@@ -141,6 +142,7 @@ export const publishExam = createServerFn({ method: "POST" })
         prompt: q.question,
         options: q.options,
         correct_answer: q.correctAnswer,
+        explanation: (q.explanation ?? "").trim(),
       })),
     );
     if (qError) {

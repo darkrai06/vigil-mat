@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { getStudentHome } from "@/lib/exam.functions";
 import { claimFirstAdmin } from "@/lib/admin.functions";
 import { AppShell } from "@/components/AppShell";
+import { UnsolvedQuestions } from "@/components/UnsolvedQuestions";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
@@ -141,6 +142,8 @@ function Dashboard() {
               </div>
             </aside>
           </section>
+
+          <UnsolvedQuestions />
 
           <section>
             <div className="mb-4 flex items-end justify-between">
