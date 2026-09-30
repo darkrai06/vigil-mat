@@ -8,6 +8,7 @@ type NavItem = { to: string; label: string };
 
 const baseNav: NavItem[] = [
   { to: "/dashboard", label: "Today's exam" },
+  { to: "/unsolved", label: "Unsolved exams" },
   { to: "/history", label: "Attempt history" },
 ];
 

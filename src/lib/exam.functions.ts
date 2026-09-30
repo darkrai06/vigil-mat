@@ -43,6 +43,32 @@ function toOptions(raw: unknown): string[] {
   return Array.isArray(raw) ? raw.map((o) => String(o)) : [];
 }
 
+export const getUnsolvedExams = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const [examsRes, attemptsRes] = await Promise.all([
+      supabaseAdmin
+        .from("exams")
+        .select("id, title, description, question_count, duration_minutes, created_at")
+        .eq("is_published", true)
+        .order("created_at", { ascending: false }),
+      supabaseAdmin.from("attempts").select("exam_id").eq("user_id", context.userId),
+    ]);
+    const done = new Set((attemptsRes.data ?? []).map((a) => a.exam_id));
+    const list: ExamSummary[] = (examsRes.data ?? [])
+      .filter((e) => !done.has(e.id))
+      .map((e) => ({
+        id: e.id,
+        title: e.title,
+        description: e.description,
+        questionCount: e.question_count,
+        durationMinutes: e.duration_minutes,
+        createdAt: e.created_at,
+      }));
+    return list;
+  });
+
 export const getStudentHome = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
@@ -167,14 +193,6 @@ async function gradeAndStore(
     return s?.attempt_id as string;
   }
 
-  const unsolvedRows = answerRows
-    .filter((r) => r.selected_answer === null)
-    .map((r) => ({ user_id: params.userId, exam_id: params.examId, question_id: r.question_id, attempt_id: attempt.id }));
-  if (unsolvedRows.length > 0) {
-    await supabaseAdmin
-      .from("unsolved_questions")
-      .upsert(unsolvedRows, { onConflict: "attempt_id,question_id", ignoreDuplicates: true });
-  }
   return attempt.id;
 }
 
